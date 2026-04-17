@@ -1,0 +1,18 @@
+# Binaries
+/bin/
+/build/
+
+# Go workspace
+*.exe
+*.test
+*.out
+
+# Dependency directories (rarely used with modules, but safe)
+/vendor/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
