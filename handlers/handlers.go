@@ -3,16 +3,18 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"todo-api/models"
-	"todo-api/utils"
+
+	"github.com/go-chi/chi/v5"
 )
 
-func getTodos(w http.ResponseWriter, r *http.Request) {
+func GetTodos(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(models.Todos)
 }
 
-func createTodo(w http.ResponseWriter, r *http.Request) {
+func CreateTodo(w http.ResponseWriter, r *http.Request) {
 	var newTodo models.Todo
 
 	err := json.NewDecoder(r.Body).Decode(&newTodo)
@@ -29,8 +31,9 @@ func createTodo(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(newTodo)
 }
 
-func getTodoByID(w http.ResponseWriter, r *http.Request) {
-	id, err := utils.GetIDFromPath(r.URL.Path)
+func GetTodoByID(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
@@ -47,8 +50,9 @@ func getTodoByID(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Todo not found", http.StatusNotFound)
 }
 
-func updateTodo(w http.ResponseWriter, r *http.Request) {
-	id, err := utils.GetIDFromPath(r.URL.Path)
+func UpdateTodo(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
@@ -73,8 +77,9 @@ func updateTodo(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Todo not found", http.StatusNotFound)
 }
 
-func deleteTodo(w http.ResponseWriter, r *http.Request) {
-	id, err := utils.GetIDFromPath(r.URL.Path)
+func DeleteTodo(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
@@ -91,28 +96,28 @@ func deleteTodo(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Todo not found", http.StatusNotFound)
 }
 
-func InitHandlers() {
-	http.HandleFunc("/todos", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			getTodos(w, r)
-		} else if r.Method == http.MethodPost {
-			createTodo(w, r)
-		} else {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
+// func InitHandlers() {
+// 	http.HandleFunc("/todos", func(w http.ResponseWriter, r *http.Request) {
+// 		if r.Method == http.MethodGet {
+// 			GetTodos(w, r)
+// 		} else if r.Method == http.MethodPost {
+// 			CreateTodo(w, r)
+// 		} else {
+// 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+// 		}
+// 	})
 
-	http.HandleFunc("/todos/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			getTodoByID(w, r)
-		} else if r.Method == http.MethodPut {
-			updateTodo(w, r)
-		} else if r.Method == http.MethodDelete {
-			deleteTodo(w, r)
-		} else {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		}
-	})
+// 	http.HandleFunc("/todos/", func(w http.ResponseWriter, r *http.Request) {
+// 		if r.Method == http.MethodGet {
+// 			GetTodoByID(w, r)
+// 		} else if r.Method == http.MethodPut {
+// 			UpdateTodo(w, r)
+// 		} else if r.Method == http.MethodDelete {
+// 			DeleteTodo(w, r)
+// 		} else {
+// 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+// 		}
+// 	})
 
-	http.ListenAndServe(":8080", nil)
-}
+// 	http.ListenAndServe(":8080", nil)
+// }

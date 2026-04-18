@@ -1,9 +1,11 @@
 package main
 
 import (
-	"todo-api/handlers"
+	"net/http"
+	"todo-api/routes"
 )
 
 func main() {
-	handlers.InitHandlers()
+	r := routes.SetupRouter()
+	http.ListenAndServe(":8080", r)
 }
