@@ -20,14 +20,20 @@ func CreateTodo(task string) (models.Todo, error) {
 		return models.Todo{}, ErrTaskEmpty
 	}
 
-	todo := models.Todo{
-		ID:   len(models.Todos) + 1,
-		Task: task,
+	result, err := db.DB.Exec("INSERT INTO todos(task) VALUES(?)", task)
+	if err != nil {
+		return models.Todo{}, err
 	}
 
-	models.Todos = append(models.Todos, todo)
+	id, err := result.LastInsertId()
+	if err != nil {
+		return models.Todo{}, err
+	}
 
-	return todo, nil
+	return models.Todo{
+		ID:   int(id),
+		Task: task,
+	}, nil
 }
 
 func GetTodoByID(id int) (models.Todo, error) {
@@ -50,10 +56,10 @@ func GetAllTodos() ([]models.Todo, error) {
 	}
 	defer rows.Close()
 
-	var todos []models.Todo
+	todos := []models.Todo{}
 
 	for rows.Next() {
-		var todo models.Todo
+		todo := models.Todo{}
 
 		if err := rows.Scan(&todo.ID, &todo.Task); err != nil {
 			return nil, err
