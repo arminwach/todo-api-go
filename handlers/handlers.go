@@ -4,120 +4,111 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+
 	"todo-api/models"
+	"todo-api/services"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func GetTodos(w http.ResponseWriter, r *http.Request) {
+func writeJSONError(w http.ResponseWriter, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(models.Todos)
+	w.WriteHeader(status)
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"error": message,
+	})
+}
+
+func writeJSON(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+
+	json.NewEncoder(w).Encode(data)
+}
+
+func GetTodos(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, models.Todos)
 }
 
 func CreateTodo(w http.ResponseWriter, r *http.Request) {
 	var newTodo models.Todo
 
-	err := json.NewDecoder(r.Body).Decode(&newTodo)
-	if err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+	if err := json.NewDecoder(r.Body).Decode(&newTodo); err != nil {
+		writeJSONError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
 
-	newTodo.ID = len(models.Todos) + 1
-	models.Todos = append(models.Todos, newTodo)
+	todo, err := services.CreateTodo(newTodo.Task)
+	if err != nil {
+		writeJSONError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(newTodo)
+	writeJSON(w, http.StatusCreated, todo)
 }
 
 func GetTodoByID(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
-	for _, todo := range models.Todos {
-		if todo.ID == id {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(todo)
-			return
-		}
+	todo, err := services.GetTodoByID(id)
+	if err != nil {
+		writeJSONError(w, http.StatusNotFound, err.Error())
+		return
 	}
 
-	http.Error(w, "Todo not found", http.StatusNotFound)
+	writeJSON(w, http.StatusOK, todo)
+
 }
 
 func UpdateTodo(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
 	var updated models.Todo
+
 	if err := json.NewDecoder(r.Body).Decode(&updated); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
 
-	for i, todo := range models.Todos {
-		if todo.ID == id {
-			models.Todos[i].Task = updated.Task
-
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(models.Todos[i])
-			return
-		}
+	if updated.Task == "" {
+		writeJSONError(w, http.StatusBadRequest, "Task cannot be empty")
+		return
 	}
 
-	http.Error(w, "Todo not found", http.StatusNotFound)
+	todo, err := services.UpdateTodo(id, updated.Task)
+	if err != nil {
+		writeJSONError(w, http.StatusNotFound, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, todo)
+
 }
 
 func DeleteTodo(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		writeJSONError(w, http.StatusBadRequest, "Invalid ID")
 		return
 	}
 
-	for i, todo := range models.Todos {
-		if todo.ID == id {
-			models.Todos = append(models.Todos[:i], models.Todos[i+1:]...)
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
+	err = services.DeleteTodo(id)
+	if err != nil {
+		writeJSONError(w, http.StatusNotFound, err.Error())
+		return
 	}
 
-	http.Error(w, "Todo not found", http.StatusNotFound)
+	w.WriteHeader(http.StatusNoContent)
 }
-
-// func InitHandlers() {
-// 	http.HandleFunc("/todos", func(w http.ResponseWriter, r *http.Request) {
-// 		if r.Method == http.MethodGet {
-// 			GetTodos(w, r)
-// 		} else if r.Method == http.MethodPost {
-// 			CreateTodo(w, r)
-// 		} else {
-// 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-// 		}
-// 	})
-
-// 	http.HandleFunc("/todos/", func(w http.ResponseWriter, r *http.Request) {
-// 		if r.Method == http.MethodGet {
-// 			GetTodoByID(w, r)
-// 		} else if r.Method == http.MethodPut {
-// 			UpdateTodo(w, r)
-// 		} else if r.Method == http.MethodDelete {
-// 			DeleteTodo(w, r)
-// 		} else {
-// 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-// 		}
-// 	})
-
-// 	http.ListenAndServe(":8080", nil)
-// }
